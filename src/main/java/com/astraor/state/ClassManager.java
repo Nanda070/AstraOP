@@ -18,11 +18,13 @@ public class ClassManager {
     private final AstraORPlugin plugin;
     private final NamespacedKey classIdKey;
     private final NamespacedKey choosingClassKey;
+    private final NamespacedKey classChosenTimeKey;
 
     public ClassManager(AstraORPlugin plugin) {
         this.plugin = plugin;
         this.classIdKey = new NamespacedKey(plugin, "class_id");
         this.choosingClassKey = new NamespacedKey(plugin, "choosing_class");
+        this.classChosenTimeKey = new NamespacedKey(plugin, "class_chosen_time");
     }
 
     public void setChoosingClass(Player player, boolean choosing) {
@@ -42,9 +44,16 @@ public class ClassManager {
         PersistentDataContainer pdc = player.getPersistentDataContainer();
         if (astraClass != null) {
             pdc.set(classIdKey, PersistentDataType.STRING, astraClass.getId());
+            pdc.set(classChosenTimeKey, PersistentDataType.LONG, System.currentTimeMillis());
         } else {
             pdc.remove(classIdKey);
+            pdc.remove(classChosenTimeKey);
         }
+    }
+
+    public long getClassChosenTime(Player player) {
+        PersistentDataContainer pdc = player.getPersistentDataContainer();
+        return pdc.getOrDefault(classChosenTimeKey, PersistentDataType.LONG, 0L);
     }
 
     public AstraClass getPlayerClass(Player player) {

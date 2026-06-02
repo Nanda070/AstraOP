@@ -56,7 +56,7 @@ public class FreezeListener implements Listener {
                 // We should cancel the event generally unless handled by OnboardingGUI logic
                 // For safety, cancel all clicks here, and let the GUI listener override or we check GUI titles.
                 String title = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(event.getView().title());
-                if (title.contains("Class Selection") || title.contains("Confirm Class")) {
+                if (title.contains("Выбор класса AstraOR") || title.contains("Подтвердите:")) {
                     return; // Let OnboardingGUI handle it
                 }
                 event.setCancelled(true);

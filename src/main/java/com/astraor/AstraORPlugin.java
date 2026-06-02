@@ -11,6 +11,7 @@ public class AstraORPlugin extends JavaPlugin {
     private com.astraor.state.ClassManager classManager;
     private com.astraor.mechanics.MechanicsManager mechanicsManager;
     private com.astraor.mechanics.CatalystManager catalystManager;
+    private com.astraor.mechanics.BossManager bossManager;
 
     @Override
     public void onEnable() {
@@ -24,6 +25,7 @@ public class AstraORPlugin extends JavaPlugin {
         this.classManager = new com.astraor.state.ClassManager(this);
         this.mechanicsManager = new com.astraor.mechanics.MechanicsManager(this);
         this.catalystManager = new com.astraor.mechanics.CatalystManager(this);
+        this.bossManager = new com.astraor.mechanics.BossManager(this);
 
         this.catalystManager.registerRecipe();
 
@@ -42,6 +44,9 @@ public class AstraORPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (this.bossManager != null) {
+            this.bossManager.onDisable();
+        }
         getLogger().info("AstraOR disabled.");
     }
 
@@ -63,5 +68,9 @@ public class AstraORPlugin extends JavaPlugin {
 
     public com.astraor.mechanics.CatalystManager getCatalystManager() {
         return catalystManager;
+    }
+
+    public com.astraor.mechanics.BossManager getBossManager() {
+        return bossManager;
     }
 }

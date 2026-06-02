@@ -1,6 +1,7 @@
 com\astraor\AstraORPlugin.class
 com\astraor\commands\AstraORCommand.class
 com\astraor\util\DiscordWebhook.class
+com\astraor\mechanics\BossManager.class
 com\astraor\state\ClassManager.class
 com\astraor\state\AstraClass.class
 com\astraor\mechanics\MechanicsManager$1.class

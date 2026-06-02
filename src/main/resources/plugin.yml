@@ -2,12 +2,12 @@ name: AstraOR
 version: 1.0.0
 main: com.astraor.AstraORPlugin
 api-version: '1.21'
-depend: [AuthMe]
+depend: [AuthMe, AstraSMP]
 authors: [AstraTeam]
-description: An Origins-like custom class system.
+description: Система кастомных классов в стиле Origins.
 
 commands:
   astraor:
-    description: Main admin command for AstraOR.
+    description: Главная команда администратора для AstraOR.
     permission: astraor.admin
     usage: /<command>
