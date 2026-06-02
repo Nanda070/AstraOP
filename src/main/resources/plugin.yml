@@ -1,0 +1,13 @@
+name: AstraOR
+version: 1.0.0
+main: com.astraor.AstraORPlugin
+api-version: '1.21'
+depend: [AuthMe]
+authors: [AstraTeam]
+description: An Origins-like custom class system.
+
+commands:
+  astraor:
+    description: Main admin command for AstraOR.
+    permission: astraor.admin
+    usage: /<command>

@@ -1,0 +1,5 @@
+# AstraOR Configuration
+
+# Discord Webhook settings for logging class changes
+webhook:
+  url: "https://discord.com/api/webhooks/your-webhook-id/your-webhook-token"

@@ -1,0 +1,15 @@
+com\astraor\AstraORPlugin.class
+com\astraor\commands\AstraORCommand.class
+com\astraor\util\DiscordWebhook.class
+com\astraor\state\ClassManager.class
+com\astraor\state\AstraClass.class
+com\astraor\mechanics\MechanicsManager$1.class
+com\astraor\gui\OnboardingGUI.class
+com\astraor\mechanics\CatalystManager.class
+com\astraor\listeners\NPCInteractListener.class
+com\astraor\mechanics\MechanicsListener$1.class
+com\astraor\listeners\AuthListener.class
+com\astraor\mechanics\MechanicsManager.class
+com\astraor\config\Settings.class
+com\astraor\mechanics\MechanicsListener.class
+com\astraor\listeners\FreezeListener.class

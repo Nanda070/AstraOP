@@ -1,0 +1,13 @@
+C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\AstraORPlugin.java
+C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\commands\AstraORCommand.java
+C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\config\Settings.java
+C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\gui\OnboardingGUI.java
+C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\listeners\AuthListener.java
+C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\listeners\FreezeListener.java
+C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\listeners\NPCInteractListener.java
+C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\mechanics\CatalystManager.java
+C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\mechanics\MechanicsListener.java
+C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\mechanics\MechanicsManager.java
+C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\state\AstraClass.java
+C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\state\ClassManager.java
+C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\util\DiscordWebhook.java
