@@ -2,6 +2,7 @@ package com.astraor.listeners;
 
 import com.astraor.AstraORPlugin;
 import com.astraor.gui.OnboardingGUI;
+import com.astraor.state.AstraClass;
 import fr.xephi.authme.events.LoginEvent;
 import fr.xephi.authme.events.RegisterEvent;
 import org.bukkit.Bukkit;
@@ -28,15 +29,22 @@ public class AuthListener implements Listener {
     }
 
     private void handleAuthSuccess(Player player) {
-        if (!plugin.getClassManager().hasClass(player)) {
-            plugin.getClassManager().setChoosingClass(player, true);
-            
-            // Delay slightly to ensure player is fully logged in before opening GUI
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                if (player.isOnline()) {
-                    OnboardingGUI.openMainGUI(player);
+        // Задержка: гарантируем, что игрок полностью загружен
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!player.isOnline()) return;
+
+            if (!plugin.getClassManager().hasClass(player)) {
+                // Новый игрок — показываем экран выбора класса
+                plugin.getClassManager().setChoosingClass(player, true);
+                OnboardingGUI.openMainGUI(player);
+            } else {
+                // FIX #15: Атрибуты и эффекты сохраняются в PDC, но AttributeModifier
+                // не персистентен — нужно заново применить модификаторы класса при каждом входе
+                AstraClass playerClass = plugin.getClassManager().getPlayerClass(player);
+                if (playerClass != null) {
+                    plugin.getMechanicsManager().applyClass(player, playerClass);
                 }
-            }, 10L);
-        }
+            }
+        }, 10L);
     }
 }

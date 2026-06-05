@@ -2,6 +2,7 @@ package com.astraor.mechanics;
 
 import com.astraor.AstraORPlugin;
 import com.astraor.state.AstraClass;
+import com.astraor.state.CooldownManager;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
@@ -16,28 +17,43 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class MechanicsManager {
 
+    // ---- Константы имён способностей (для CooldownManager) ----
+    public static final String ABILITY_VANGUARD_ADRENALINE = "vanguard_adrenaline";
+    public static final String ABILITY_WINDWALKER_UPDRAFT  = "windwalker_updraft";
+    public static final String ABILITY_PHANTOM_PHASE       = "phantom_phase";
+    public static final String ABILITY_PHOENIX_SUPERNOVA   = "phoenix_supernova";
+    public static final String ABILITY_DRUID_GRASP         = "druid_grasp";
+    public static final String ABILITY_VAMPIRE_DASH        = "vampire_dash";
+    public static final String ABILITY_GOLIATH_TREMOR      = "goliath_tremor";
+
     private final AstraORPlugin plugin;
-    // Track cooldowns (UUID -> Timestamp)
-    public final Map<UUID, Long> vanguardAdrenalineCooldowns = new HashMap<>();
-    public final Map<UUID, Long> windwalkerUpdraftCooldowns = new HashMap<>();
+    private final CooldownManager cooldowns;
 
     public MechanicsManager(AstraORPlugin plugin) {
-        this.plugin = plugin;
+        this.plugin    = plugin;
+        this.cooldowns = plugin.getCooldownManager();
         startTickingTask();
     }
 
+    /** Удобный доступ к CooldownManager для MechanicsListener. */
+    public CooldownManager getCooldowns() {
+        return cooldowns;
+    }
+
+    // ----------------------------------------------------------------
+    //  applyClass
+    // ----------------------------------------------------------------
+
     public void applyClass(Player player, AstraClass astraClass) {
-        // First ensure clean state
         plugin.getClassManager().clearClass(player);
         if (astraClass == null) return;
 
-        // Apply new modifiers
         switch (astraClass) {
             case ARCHITECT -> applyModifier(player, Attribute.PLAYER_BLOCK_INTERACTION_RANGE, 2.0, AttributeModifier.Operation.ADD_NUMBER);
             case JUGGERNAUT -> {
@@ -46,43 +62,49 @@ public class MechanicsManager {
                 applyModifier(player, Attribute.GENERIC_ARMOR_TOUGHNESS, 2.0, AttributeModifier.Operation.ADD_NUMBER);
                 applyModifier(player, Attribute.GENERIC_KNOCKBACK_RESISTANCE, 1.0, AttributeModifier.Operation.ADD_NUMBER);
             }
-            case SHADOW -> applyModifier(player, Attribute.GENERIC_MAX_HEALTH, -6.0, AttributeModifier.Operation.ADD_NUMBER);
-            case RANGER -> {
-                // Modifiers applied via damage events
+            case SHADOW   -> applyModifier(player, Attribute.GENERIC_MAX_HEALTH, -6.0, AttributeModifier.Operation.ADD_NUMBER);
+            case PHANTOM  -> applyModifier(player, Attribute.GENERIC_MAX_HEALTH, -4.0, AttributeModifier.Operation.ADD_NUMBER);
+            case PHOENIX  -> applyModifier(player, Attribute.GENERIC_MAX_HEALTH, -4.0, AttributeModifier.Operation.ADD_NUMBER);
+            case WINDWALKER -> equipInnateElytra(player);
+            case GOLIATH -> {
+                applyModifier(player, Attribute.GENERIC_MAX_HEALTH, 10.0, AttributeModifier.Operation.ADD_NUMBER);
+                applyModifier(player, Attribute.GENERIC_KNOCKBACK_RESISTANCE, 1.0, AttributeModifier.Operation.ADD_NUMBER);
             }
-            case VANGUARD -> {
-                // Modifiers applied via damage events
-            }
-            case BERSERKER -> {
-                // Modifiers applied via damage events
-            }
-            case WINDWALKER -> {
-                equipInnateElytra(player);
-            }
+            // RANGER, VANGUARD, BERSERKER, DRUID, VAMPIRE — только через события
             default -> {}
         }
-        
-        // Initial equipment validation check (drop incompatible)
+
         validateEquipment(player, astraClass);
     }
 
+    // ----------------------------------------------------------------
+    //  applyModifier — FIX #1: без ConcurrentModificationException
+    // ----------------------------------------------------------------
+
     private void applyModifier(Player player, Attribute attribute, double amount, AttributeModifier.Operation operation) {
         AttributeInstance instance = player.getAttribute(attribute);
-        if (instance != null) {
-            NamespacedKey key = new NamespacedKey(plugin, attribute.getKey().getKey() + "_mod");
-            AttributeModifier modifier = new AttributeModifier(key, amount, operation, EquipmentSlotGroup.ANY);
-            // Remove existing with same key if any
-            for (AttributeModifier mod : instance.getModifiers()) {
-                if (mod.getKey().equals(key)) {
-                    instance.removeModifier(mod);
-                }
+        if (instance == null) return;
+
+        NamespacedKey key = new NamespacedKey(plugin, attribute.getKey().getKey() + "_mod");
+
+        // Собираем для удаления отдельно — не модифицируем коллекцию во время итерации
+        List<AttributeModifier> toRemove = new ArrayList<>();
+        for (AttributeModifier mod : instance.getModifiers()) {
+            if (mod.getKey().equals(key)) {
+                toRemove.add(mod);
             }
-            instance.addModifier(modifier);
         }
+        toRemove.forEach(instance::removeModifier);
+
+        instance.addModifier(new AttributeModifier(key, amount, operation, EquipmentSlotGroup.ANY));
     }
 
+    // ----------------------------------------------------------------
+    //  Innate Elytra
+    // ----------------------------------------------------------------
+
     public void equipInnateElytra(Player player) {
-        NamespacedKey innateKey = new NamespacedKey(plugin, "innate_elytra");
+        NamespacedKey innateKey = plugin.getClassManager().getInnateElytraKey();
         ItemStack elytra = new ItemStack(org.bukkit.Material.ELYTRA);
         ItemMeta meta = elytra.getItemMeta();
         if (meta != null) {
@@ -92,8 +114,8 @@ public class MechanicsManager {
         }
 
         PlayerInventory inv = player.getInventory();
-        // Return old chestplate to inventory if it is not our innate elytra
         ItemStack current = inv.getChestplate();
+        // Возвращаем старый нагрудник в инвентарь, если это не наша элитра
         if (current != null && current.hasItemMeta()) {
             if (!current.getItemMeta().getPersistentDataContainer().has(innateKey, PersistentDataType.BYTE)) {
                 inv.addItem(current);
@@ -104,9 +126,13 @@ public class MechanicsManager {
 
     public boolean isInnateElytra(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return false;
-        NamespacedKey innateKey = new NamespacedKey(plugin, "innate_elytra");
-        return item.getItemMeta().getPersistentDataContainer().has(innateKey, PersistentDataType.BYTE);
+        return item.getItemMeta().getPersistentDataContainer()
+                .has(plugin.getClassManager().getInnateElytraKey(), PersistentDataType.BYTE);
     }
+
+    // ----------------------------------------------------------------
+    //  Ticking task
+    // ----------------------------------------------------------------
 
     private void startTickingTask() {
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
@@ -122,20 +148,22 @@ public class MechanicsManager {
                     case JUGGERNAUT -> addEffect(player, PotionEffectType.SLOWNESS, 0, 100);
                     case SHADOW -> {
                         addEffect(player, PotionEffectType.SPEED, 1, 100);
-                        // Sunlight check
-                        if (player.getWorld().hasStorm() || player.getLocation().getBlock().getLightFromSky() == 15) {
-                            if (player.getWorld().getTime() < 13000 || player.getWorld().getTime() > 23000) {
-                                // Direct sunlight
-                                int highestY = player.getWorld().getHighestBlockYAt(player.getLocation());
-                                if (player.getLocation().getY() >= highestY) {
-                                    addEffect(player, PotionEffectType.WEAKNESS, 0, 60);
-                                }
+                        // FIX #4: Правильная проверка прямого солнечного света:
+                        // hasStorm() исключает солнце, проверяем свет И время И отсутствие бури
+                        if (!player.getWorld().hasStorm()
+                                && player.getLocation().getBlock().getLightFromSky() == 15
+                                && player.getWorld().getTime() < 13000) {
+                            int highestY = player.getWorld().getHighestBlockYAt(player.getLocation());
+                            if (player.getLocation().getY() >= highestY) {
+                                addEffect(player, PotionEffectType.WEAKNESS, 0, 60);
                             }
                         }
                     }
                     case WINDWALKER -> {
-                        if (player.getGameMode() == org.bukkit.GameMode.SURVIVAL || player.getGameMode() == org.bukkit.GameMode.ADVENTURE) {
-                            if (!player.getAllowFlight() && !player.isGliding() && ((org.bukkit.entity.Entity)player).isOnGround()) {
+                        if (player.getGameMode() == org.bukkit.GameMode.SURVIVAL
+                                || player.getGameMode() == org.bukkit.GameMode.ADVENTURE) {
+                            if (!player.getAllowFlight() && !player.isGliding()
+                                    && ((org.bukkit.entity.Entity) player).isOnGround()) {
                                 player.setAllowFlight(true);
                             }
                         }
@@ -144,19 +172,36 @@ public class MechanicsManager {
                             addEffect(player, PotionEffectType.WEAKNESS, 0, 60);
                         }
                     }
+                    case PHOENIX -> {
+                        if (player.isInWaterOrRain() || player.isInWaterOrBubbleColumn()) {
+                            player.damage(1.0);
+                        }
+                    }
+                    case GOLIATH -> {
+                        addEffect(player, PotionEffectType.HASTE, 1, 60);
+                        addEffect(player, PotionEffectType.SLOWNESS, 0, 60);
+                        if (player.getFoodLevel() > 0 && ThreadLocalRandom.current().nextInt(100) < 5) {
+                            player.setFoodLevel(Math.max(0, player.getFoodLevel() - 1));
+                        }
+                    }
                     default -> {}
                 }
             }
-        }, 20L, 40L); // Run every 2 seconds
+        }, 20L, 40L);
     }
 
     private void addEffect(Player player, PotionEffectType type, int amplifier, int durationTicks) {
         player.addPotionEffect(new PotionEffect(type, durationTicks, amplifier, false, false, true));
     }
-    
+
+    // ----------------------------------------------------------------
+    //  validateEquipment — FIX #5: правильный индекс chestplate (2)
+    // ----------------------------------------------------------------
+
     public void validateEquipment(Player player, AstraClass astraClass) {
+        if (astraClass == null) return;
         PlayerInventory inv = player.getInventory();
-        
+
         if (astraClass == AstraClass.RANGER) {
             ItemStack offhand = inv.getItemInOffHand();
             if (offhand.getType().name().contains("SHIELD")) {
@@ -164,7 +209,7 @@ public class MechanicsManager {
                 player.getWorld().dropItemNaturally(player.getLocation(), offhand);
             }
         }
-        
+
         if (astraClass == AstraClass.JUGGERNAUT) {
             ItemStack chest = inv.getChestplate();
             if (chest != null && chest.getType().name().contains("ELYTRA")) {
@@ -172,7 +217,7 @@ public class MechanicsManager {
                 player.getWorld().dropItemNaturally(player.getLocation(), chest);
             }
         }
-        
+
         if (astraClass == AstraClass.BERSERKER) {
             ItemStack[] contents = inv.getContents();
             for (int i = 0; i < contents.length; i++) {
@@ -186,17 +231,18 @@ public class MechanicsManager {
                 }
             }
         }
-        
+
         if (astraClass == AstraClass.WINDWALKER) {
-            // Restore innate elytra if player managed to remove it
             ItemStack chestplate = inv.getChestplate();
             if (chestplate == null || !isInnateElytra(chestplate)) {
                 equipInnateElytra(player);
             }
 
-            // Remove diamond/netherite armor from other slots
+            // FIX #5: getArmorContents() = [boots(0), leggings(1), chestplate(2), helmet(3)]
+            // Пропускаем индекс 2 (chestplate), а не length-1
             ItemStack[] armor = inv.getArmorContents();
-            for (int i = 0; i < armor.length - 1; i++) { // skip index 2 (chestplate)
+            for (int i = 0; i < armor.length; i++) {
+                if (i == 2) continue; // chestplate — пропускаем (там встроенная элитра)
                 ItemStack item = armor[i];
                 if (item != null) {
                     String name = item.getType().name();
@@ -208,5 +254,34 @@ public class MechanicsManager {
             }
             inv.setArmorContents(armor);
         }
+
+        if (astraClass == AstraClass.PHANTOM || astraClass == AstraClass.DRUID) {
+            ItemStack[] armor = inv.getArmorContents();
+            for (int i = 0; i < armor.length; i++) {
+                ItemStack item = armor[i];
+                if (item != null) {
+                    String name = item.getType().name();
+                    if (name.contains("IRON") || name.contains("DIAMOND")
+                            || name.contains("NETHERITE") || name.contains("GOLD")) {
+                        armor[i] = null;
+                        player.getWorld().dropItemNaturally(player.getLocation(), item);
+                        if (astraClass == AstraClass.PHANTOM) {
+                            player.damage(2.0);
+                        }
+                    }
+                }
+            }
+            inv.setArmorContents(armor);
+        }
+    }
+
+    // ----------------------------------------------------------------
+    //  Cooldown message helper
+    // ----------------------------------------------------------------
+
+    public void sendCooldownMessage(Player player, String ability, long remainingMs) {
+        long seconds = (remainingMs / 1000) + 1;
+        player.sendActionBar(net.kyori.adventure.text.Component.text(
+                "§cСпособность " + ability + " на перезарядке: §e" + seconds + "с."));
     }
 }

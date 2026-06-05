@@ -11,3 +11,6 @@ commands:
     description: Главная команда администратора для AstraOR.
     permission: astraor.admin
     usage: /<command>
+  abilitykeybind:
+    description: Сменить клавишу активации способности.
+    usage: /<command> [set <bind>]

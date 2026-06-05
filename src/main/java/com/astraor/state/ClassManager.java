@@ -19,12 +19,20 @@ public class ClassManager {
     private final NamespacedKey classIdKey;
     private final NamespacedKey choosingClassKey;
     private final NamespacedKey classChosenTimeKey;
+    // Создаём один раз, а не при каждом вызове clearClass / validateEquipment
+    private final NamespacedKey innateElytraKey;
 
     public ClassManager(AstraORPlugin plugin) {
         this.plugin = plugin;
-        this.classIdKey = new NamespacedKey(plugin, "class_id");
-        this.choosingClassKey = new NamespacedKey(plugin, "choosing_class");
+        this.classIdKey        = new NamespacedKey(plugin, "class_id");
+        this.choosingClassKey  = new NamespacedKey(plugin, "choosing_class");
         this.classChosenTimeKey = new NamespacedKey(plugin, "class_chosen_time");
+        this.innateElytraKey   = new NamespacedKey(plugin, "innate_elytra");
+    }
+
+    /** Возвращает ключ встроенной элитры (для использования в других менеджерах). */
+    public NamespacedKey getInnateElytraKey() {
+        return innateElytraKey;
     }
 
     public void setChoosingClass(Player player, boolean choosing) {
@@ -67,7 +75,7 @@ public class ClassManager {
     }
 
     public void clearClass(Player player) {
-        // 1. Clear specific AstraOR attribute modifiers
+        // 1. Снять атрибуты плагина
         Attribute[] attributesToCheck = {
                 Attribute.GENERIC_MAX_HEALTH,
                 Attribute.GENERIC_MOVEMENT_SPEED,
@@ -81,7 +89,7 @@ public class ClassManager {
         for (Attribute attribute : attributesToCheck) {
             AttributeInstance instance = player.getAttribute(attribute);
             if (instance != null) {
-                // Collect modifiers to remove to avoid concurrent modification
+                // Буферный список — избегаем ConcurrentModificationException
                 List<AttributeModifier> toRemove = new ArrayList<>();
                 for (AttributeModifier modifier : instance.getModifiers()) {
                     if (modifier.getKey().getNamespace().equals(plugin.getName().toLowerCase())) {
@@ -94,29 +102,29 @@ public class ClassManager {
             }
         }
 
-        // 2. Clear potion effects
+        // 2. Снять зелья
         for (PotionEffect effect : player.getActivePotionEffects()) {
             player.removePotionEffect(effect.getType());
         }
-        
-        // Ensure their health doesn't exceed new max health
+
+        // Убедиться, что хп не превышает новый максимум
         AttributeInstance maxHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
         if (maxHealth != null && player.getHealth() > maxHealth.getValue()) {
             player.setHealth(maxHealth.getValue());
         }
 
-        // 3. Reset innate flight mechanics and remove innate elytra
+        // 3. Сброс полёта / элитры
         if (player.getGameMode() == org.bukkit.GameMode.SURVIVAL || player.getGameMode() == org.bukkit.GameMode.ADVENTURE) {
             player.setAllowFlight(false);
             player.setGliding(false);
         }
-        // Remove innate elytra from chestplate slot
+
+        // Убрать встроенную элитру (используем переиспользуемый ключ)
         org.bukkit.inventory.PlayerInventory inv = player.getInventory();
         org.bukkit.inventory.ItemStack chest = inv.getChestplate();
         if (chest != null && chest.hasItemMeta()) {
-            org.bukkit.NamespacedKey innateKey = new org.bukkit.NamespacedKey(plugin, "innate_elytra");
-            if (chest.getItemMeta().getPersistentDataContainer().has(innateKey, org.bukkit.persistence.PersistentDataType.BYTE)) {
-                inv.setChestplate(null); // Simply remove it — it was given by the plugin
+            if (chest.getItemMeta().getPersistentDataContainer().has(innateElytraKey, PersistentDataType.BYTE)) {
+                inv.setChestplate(null);
             }
         }
     }

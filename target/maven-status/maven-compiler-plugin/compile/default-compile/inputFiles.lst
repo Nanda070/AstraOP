@@ -1,4 +1,5 @@
 C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\AstraORPlugin.java
+C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\commands\AstraKeybindCommand.java
 C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\commands\AstraORCommand.java
 C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\config\Settings.java
 C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\gui\OnboardingGUI.java
@@ -11,4 +12,6 @@ C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\mechanics\MechanicsListe
 C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\mechanics\MechanicsManager.java
 C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\state\AstraClass.java
 C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\state\ClassManager.java
+C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\state\CooldownManager.java
+C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\state\KeybindManager.java
 C:\Users\adnan\coding\AstraOP\src\main\java\com\astraor\util\DiscordWebhook.java
