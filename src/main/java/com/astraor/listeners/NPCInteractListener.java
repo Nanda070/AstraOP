@@ -61,6 +61,8 @@ public class NPCInteractListener implements Listener {
 
         if (type.equalsIgnoreCase("money")) {
             handleMoneyNPC(player);
+        } else if (type.equalsIgnoreCase("guide")) {
+            com.astraor.gui.GuideGUI.openGUI(player, plugin);
         } else {
             handleItemNPC(player);
         }

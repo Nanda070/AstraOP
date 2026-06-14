@@ -40,10 +40,15 @@ public class BossManager implements Listener {
         this.dataFile = new File(plugin.getDataFolder(), "boss_data.yml");
         loadData();
         Bukkit.getPluginManager().registerEvents(this, plugin);
+        Bukkit.getScheduler().runTaskTimer(plugin, this::tickBosses, 100L, 100L); // каждые 5 секунд
     }
 
     public NamespacedKey getBossKey() {
         return bossKey;
+    }
+
+    public List<Location> getBossSpawns() {
+        return bossSpawns;
     }
 
     // ----------------------------------------------------------------
@@ -135,11 +140,11 @@ public class BossManager implements Listener {
         boss.getPersistentDataContainer().set(bossKey, PersistentDataType.BYTE, (byte) 1);
 
         if (boss.getAttribute(Attribute.GENERIC_MAX_HEALTH) != null) {
-            boss.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(300.0);
-            boss.setHealth(300.0);
+            boss.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(150.0);
+            boss.setHealth(150.0);
         }
         if (boss.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE) != null) {
-            boss.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE).setBaseValue(15.0);
+            boss.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE).setBaseValue(25.0);
         }
 
         if (!bossSpawns.contains(location)) {
@@ -149,7 +154,7 @@ public class BossManager implements Listener {
     }
 
     public void removeBossSpawn(Location location) {
-        bossSpawns.removeIf(loc -> loc.distanceSquared(location) < 4.0);
+        bossSpawns.removeIf(loc -> loc.distanceSquared(location) < 2500.0);
         saveSpawns();
     }
 
@@ -166,6 +171,59 @@ public class BossManager implements Listener {
         }
         if (!found) {
             spawnBoss(loc);
+        }
+    }
+
+    // ----------------------------------------------------------------
+    //  Абилки Босса
+    // ----------------------------------------------------------------
+
+    private void tickBosses() {
+        for (World world : Bukkit.getWorlds()) {
+            for (WitherSkeleton boss : world.getEntitiesByClass(WitherSkeleton.class)) {
+                if (boss.getPersistentDataContainer().has(bossKey, PersistentDataType.BYTE)) {
+                    if (boss.getTarget() != null && !boss.isDead()) {
+                        useRandomAbility(boss);
+                    }
+                }
+            }
+        }
+    }
+
+    private void useRandomAbility(WitherSkeleton boss) {
+        int r = java.util.concurrent.ThreadLocalRandom.current().nextInt(3);
+        if (r == 0) {
+            // Притягивание игроков
+            for (org.bukkit.entity.Entity e : boss.getNearbyEntities(15, 15, 15)) {
+                if (e instanceof org.bukkit.entity.Player p) {
+                    org.bukkit.util.Vector dir = boss.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(1.5);
+                    p.setVelocity(dir);
+                    p.sendMessage(Component.text("§4§lХранитель §cпритягивает вас!"));
+                }
+            }
+            boss.getWorld().spawnParticle(org.bukkit.Particle.PORTAL, boss.getLocation(), 100, 2, 2, 2, 1);
+            boss.getWorld().playSound(boss.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 0.5f);
+        } else if (r == 1) {
+            // Огонь
+            boss.getWorld().spawnParticle(org.bukkit.Particle.FLAME, boss.getLocation(), 100, 3, 1, 3, 0.1);
+            for (org.bukkit.entity.Entity e : boss.getNearbyEntities(10, 5, 10)) {
+                if (e instanceof org.bukkit.entity.Player p) {
+                    p.setFireTicks(100);
+                    p.sendMessage(Component.text("§4§lХранитель §cобжигает вас пламенем!"));
+                }
+            }
+            boss.getWorld().playSound(boss.getLocation(), org.bukkit.Sound.ENTITY_BLAZE_SHOOT, 1.0f, 0.5f);
+        } else if (r == 2) {
+            // Иссушение и замедление
+            for (org.bukkit.entity.Entity e : boss.getNearbyEntities(8, 8, 8)) {
+                if (e instanceof org.bukkit.entity.Player p) {
+                    p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.WITHER, 100, 1));
+                    p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS, 100, 1));
+                    p.sendMessage(Component.text("§4§lХранитель §cвытягивает ваши силы!"));
+                }
+            }
+            boss.getWorld().spawnParticle(org.bukkit.Particle.LARGE_SMOKE, boss.getLocation(), 100, 3, 1, 3, 0.1);
+            boss.getWorld().playSound(boss.getLocation(), org.bukkit.Sound.ENTITY_WITHER_SHOOT, 1.0f, 0.5f);
         }
     }
 

@@ -359,13 +359,18 @@ public class MechanicsListener implements Listener {
         AstraClass c = getClass(player);
         Action action = event.getAction();
 
-        if ((action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) && player.isSneaking()) {
-            if (plugin.getKeybindManager().getPlayerKeybind(player) == AbilityKeybind.SHIFT_RIGHT_CLICK) {
-                handleAbilityTrigger(player, c);
-            }
-        } else if ((action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) && player.isSneaking()) {
-            if (plugin.getKeybindManager().getPlayerKeybind(player) == AbilityKeybind.SHIFT_LEFT_CLICK) {
-                handleAbilityTrigger(player, c);
+        if (player.isSneaking()) {
+            AbilityKeybind bind = plugin.getKeybindManager().getPlayerKeybind(player);
+            if (bind == AbilityKeybind.SHIFT_RIGHT_CLICK) {
+                // Right-clicking air with a sword doesn't send packets in modern versions.
+                // To allow abilities (like dash) to work in the air, we accept LEFT_CLICK_AIR as a fallback.
+                if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK || action == Action.LEFT_CLICK_AIR) {
+                    handleAbilityTrigger(player, c);
+                }
+            } else if (bind == AbilityKeybind.SHIFT_LEFT_CLICK) {
+                if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
+                    handleAbilityTrigger(player, c);
+                }
             }
         }
     }

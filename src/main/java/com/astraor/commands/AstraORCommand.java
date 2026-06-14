@@ -41,6 +41,7 @@ public class AstraORCommand {
                             builder.suggest("money");
                             builder.suggest("item");
                             builder.suggest("boss");
+                            builder.suggest("guide");
                             return builder.buildFuture();
                         })
                         .executes(context -> {
@@ -76,6 +77,31 @@ public class AstraORCommand {
                     )
                 )
                 
+                // 1.2 setloc subcommand
+                .then(Commands.literal("setloc")
+                    .then(Commands.argument("type", StringArgumentType.word())
+                        .suggests((context, builder) -> {
+                            builder.suggest("money");
+                            builder.suggest("item");
+                            return builder.buildFuture();
+                        })
+                        .executes(context -> {
+                            if (!(context.getSource().getSender() instanceof Player admin)) {
+                                context.getSource().getSender().sendMessage(Component.text("§cКоманду может использовать только игрок."));
+                                return 0;
+                            }
+                            String type = StringArgumentType.getString(context, "type").toLowerCase();
+                            if (!type.equals("money") && !type.equals("item")) {
+                                admin.sendMessage(Component.text("§cДоступные типы: money, item"));
+                                return 0;
+                            }
+                            plugin.getLocationManager().setLocation(type + "_npc", admin.getLocation());
+                            admin.sendMessage(Component.text("§aТочка телепортации для " + type + " успешно установлена."));
+                            return Command.SINGLE_SUCCESS;
+                        })
+                    )
+                )
+                
                 // 1.5 despawnnpc subcommand
                 .then(Commands.literal("despawnnpc")
                     .executes(context -> {
@@ -86,7 +112,7 @@ public class AstraORCommand {
 
                         NamespacedKey npcKey = new NamespacedKey(plugin, "temple_npc");
                         int count = 0;
-                        for (Entity entity : admin.getNearbyEntities(5.0, 5.0, 5.0)) {
+                        for (Entity entity : admin.getNearbyEntities(10.0, 10.0, 10.0)) {
                             if (entity.getPersistentDataContainer().has(npcKey, PersistentDataType.STRING) ||
                                 entity.getPersistentDataContainer().has(npcKey, PersistentDataType.BYTE) || // for backward compatibility
                                 entity.getPersistentDataContainer().has(plugin.getBossManager().getBossKey(), PersistentDataType.BYTE)) {
@@ -103,7 +129,7 @@ public class AstraORCommand {
                         if (count > 0) {
                             admin.sendMessage(Component.text("§aУдалено " + count + " NPC/Боссов поблизости."));
                         } else {
-                            admin.sendMessage(Component.text("§cВ радиусе 5 блоков NPC не найдены."));
+                            admin.sendMessage(Component.text("§cВ радиусе 10 блоков NPC не найдены."));
                         }
                         
                         return Command.SINGLE_SUCCESS;

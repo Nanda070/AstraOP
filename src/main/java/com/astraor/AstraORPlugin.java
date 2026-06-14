@@ -12,6 +12,7 @@ import com.astraor.mechanics.MechanicsManager;
 import com.astraor.state.ClassManager;
 import com.astraor.state.CooldownManager;
 import com.astraor.state.KeybindManager;
+import com.astraor.state.LocationManager;
 import com.astraor.util.DiscordWebhook;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -22,6 +23,7 @@ public class AstraORPlugin extends JavaPlugin {
     private ClassManager classManager;
     private KeybindManager keybindManager;
     private CooldownManager cooldownManager;
+    private LocationManager locationManager;
     private MechanicsManager mechanicsManager;
     private CatalystManager catalystManager;
     private BossManager bossManager;
@@ -38,6 +40,7 @@ public class AstraORPlugin extends JavaPlugin {
         this.classManager    = new ClassManager(this);
         this.keybindManager  = new KeybindManager(this);
         this.cooldownManager = new CooldownManager();
+        this.locationManager = new LocationManager(this);
         this.mechanicsManager = new MechanicsManager(this);
         this.catalystManager  = new CatalystManager(this);
         this.bossManager      = new BossManager(this);
@@ -48,6 +51,7 @@ public class AstraORPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new AuthListener(this),            this);
         getServer().getPluginManager().registerEvents(new FreezeListener(this),          this);
         getServer().getPluginManager().registerEvents(new OnboardingGUI(this),           this);
+        getServer().getPluginManager().registerEvents(new com.astraor.gui.GuideGUI(this),this);
         getServer().getPluginManager().registerEvents(new NPCInteractListener(this),     this);
         getServer().getPluginManager().registerEvents(new MechanicsListener(this, mechanicsManager), this);
 
@@ -71,6 +75,7 @@ public class AstraORPlugin extends JavaPlugin {
     public ClassManager getClassManager()       { return classManager; }
     public KeybindManager getKeybindManager()   { return keybindManager; }
     public CooldownManager getCooldownManager() { return cooldownManager; }
+    public LocationManager getLocationManager() { return locationManager; }
     public MechanicsManager getMechanicsManager() { return mechanicsManager; }
     public CatalystManager getCatalystManager() { return catalystManager; }
     public BossManager getBossManager()         { return bossManager; }
