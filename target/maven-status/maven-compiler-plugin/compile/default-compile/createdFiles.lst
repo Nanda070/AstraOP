@@ -1,6 +1,7 @@
 com\astraor\AstraORPlugin.class
 com\astraor\commands\AstraORCommand.class
 com\astraor\util\DiscordWebhook.class
+com\astraor\gui\GuideGUI.class
 com\astraor\mechanics\BossManager.class
 com\astraor\state\ClassManager.class
 com\astraor\state\AstraClass.class
@@ -12,6 +13,7 @@ com\astraor\listeners\NPCInteractListener.class
 com\astraor\commands\AstraKeybindCommand.class
 com\astraor\mechanics\MechanicsListener$1.class
 com\astraor\state\CooldownManager.class
+com\astraor\state\LocationManager.class
 com\astraor\listeners\AuthListener.class
 com\astraor\mechanics\MechanicsManager.class
 com\astraor\config\Settings.class
